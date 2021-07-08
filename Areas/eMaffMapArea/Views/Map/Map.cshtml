@@ -1,0 +1,773 @@
+﻿@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>地図</title>
+    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
+    <meta http-equiv="Content-Type" content="text/html" charset="UTF-8" />
+
+    <script src="https://api.mapbox.com/mapbox-gl-js/v2.1.1/mapbox-gl.js"></script>
+    <link href="https://api.mapbox.com/mapbox-gl-js/v2.1.1/mapbox-gl.css" rel="stylesheet">
+    <script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v4.7.0/mapbox-gl-geocoder.min.js"></script>
+    <link href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v4.7.0/mapbox-gl-geocoder.css" rel="stylesheet">
+
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script> -->
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/6.3.1/d3.min.js"></script> -->
+    <!-- jquery　Bootstrap CSS -->
+    <link href="../css/bootstrap.min.css" rel="stylesheet">
+    <link href="../css/fonts.google.css?family=Noto+Sans+JP&display=swap" rel="stylesheet">
+
+    <!-- 手作りCSSを下に移動 -->
+    <link href="../css/eMAFF_common.css" rel="stylesheet">
+    <link href="../css/map.css" rel="stylesheet">
+    <link href="../css/map_control.css" rel="stylesheet">
+
+    <script src="../js/jquery.min.js"></script>
+    <script src="../js/jquery.csv.min.js"></script>
+    <script src="../js/popper.min.js"></script>
+    <script src="../js/bootstrap.min.js"></script>
+    <script src="../js/Map_Control_0.js"></script>
+    <script src="../js/Map_Control.js"></script>
+</head>
+<body>
+    <div id="mapOn" class="base">
+        <div class="main-menu">
+            <!-- 地図 -->
+            <div id="map"></div>
+            <div class="drawed-box">
+                <div id="drawed-area"></div>
+            </div>
+        </div>
+        <div id="sub_menu" class="side-menu no-scroll">
+            <div class="sub_layer">
+                <label id="folding" class="btn btn-light btn-sm hamburger_back">
+                    <img id="mypic" src="image/hamburger.png" style="margin-left: -5px;" />
+                </label>
+            </div>
+
+            <!-- ここのブロックは右ペインのメニューが出てるときは出ない方がいいんですかね？ -->
+            <!-- すぐ隠せはするんで一応出しときます -->
+            <div class="layer1">
+                <!-- btn-group-toggleでラジオボタンをグループ化、選択状態を明示 -->
+                <!-- labelとinputを同列に並べるとbtn-group-toggleが動かないため中に入れる -->
+                <!-- btn-select-black → 選択時のボタン色を黒くする -->
+                <div id="menu1" class="btn-group btn-group-sm btn-group-toggle map_menu" data-toggle="buttons">
+                    <label for="gsi-picture" class="btn btn-light btn-select-black">
+                        <input id="gsi-picture" type="radio" name="check2" value="vector" checked="checked">航空写真
+                    </label>
+                    <label for="gsi-vector" class="btn btn-light btn-select-black">
+                        <input id="gsi-vector" type="radio" name="check2" value="raster">地形図
+                    </label>
+                </div>
+                <!-- ここチェックボックス選択したら黒でいいんですかね？全選択したら真っ黒で見づらくなりそう・・・ -->
+                <!-- btn-group-verticalでチェックボックスをグループ化 -->
+                <!-- tableタグとsubmenu, submenu_thの利用をやめる -->
+                <!-- list-group-smを作成 → デフォルトのlist-groupより高さを狭く設定 -->
+                <!-- m-0 → labelタグはmargin-bottomがデフォルトで設定されるので削除 -->
+                <!-- list-group-item-action → マウスオーバーでクリックできそうな色に変わる -->
+                <!-- text-light,bg-dark → 白文字黒背景 -->
+                <div id="layer" class="map_menu btn-group-vertical btn-group-toggle" data-toggle="buttons">
+                    <label class="m-0 btn btn-sm btn-light btn-select-black list-group-sm text-left">
+                        <input id="suiden_leyer" type="checkbox" name="target" value="account" checked="checked">水田台帳
+                    </label>
+                    <label id="add" class="m-0 btn btn-sm btn-secondary list-group-sm text-center">＋</label>
+                </div>
+            </div>
+            <!-- ＞ボタン削除 -->
+            <!--
+                <div class="foldingLayer">
+                    <input type="button" value="＞" id="folding" class="foldingButton" />
+                </div>
+            -->
+            <section class="tab_contents no-scroll">
+                <nav class="navbar navbar-expand-md navbar-dark bg-dark">
+                    <div class="collapse navbar-collapse" id="navbarsExampleDefault">
+                        <ul class="navbar-nav mr-auto w-100">
+                            <li class="nav-item active dropdown">
+                                <a class="nav-link dropdown-toggle menu_title text-center" href="" id="dropdown01" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">検索</a>
+                                <div class="dropdown-menu" aria-labelledby="dropdown01">
+                                    <a class="dropdown-item text-center">農地検索</a>
+                                    <a class="dropdown-item text-center" href="4_03_001_現地確認_進捗状況確認_02.html">現地確認行程検索</a>
+                                    <a class="dropdown-item text-center">レイヤー検索</a>
+                                </div>
+                            </li>
+                            <li class="nav-item active dropdown">
+                                <a class="nav-link dropdown-toggle menu_title text-center" href="" id="dropdown02" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">新規作成</a>
+                                <div class="dropdown-menu" aria-labelledby="dropdown02">
+                                    <a class="dropdown-item text-center">農地作成</a>
+                                    <a class="dropdown-item text-center" href="4_01_001_現地確認画面（新規）.html">現地確認行程</a>
+                                </div>
+                            </li>
+                            <li class="nav-item active dropdown">
+                                <a class="nav-link dropdown-toggle menu_title text-center" href="" id="dropdown03" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">お気に入り</a>
+                                <div class="dropdown-menu" aria-labelledby="dropdown03">
+                                    <a class="dropdown-item text-center">お気に入り追加</a>
+                                    <a class="dropdown-item text-center">お気に入り管理</a>
+                                    <a class="dropdown-item text-center text-primary">B市C町の現地確認1</a>
+                                    <a class="dropdown-item text-center text-primary">B市C町の現地確認2</a>
+                                    <a class="dropdown-item text-center text-primary">水田台帳 （B市C町）</a>
+                                    <a class="dropdown-item text-center text-primary">水田台帳 地目色分け</a>
+                                    <label class="dropdown-item text-center">：</label>
+                                </div>
+                            </li>
+                            <li class="nav-item active dropdown">
+                                <a class="nav-link dropdown-toggle menu_title text-center" href="" id="dropdown04" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">その他</a>
+                                <div class="dropdown-menu" aria-labelledby="dropdown04">
+                                    <a class="dropdown-item text-center">現地確認要領管理</a>
+                                    <a class="dropdown-item text-center">農地ナビ問合せ管理</a>
+                                </div>
+                            </li>
+                            <li class="nav-item active dropdown">
+                                <a class="nav-link dropdown-toggle menu_title text-center" href="" id="dropdown05" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">ユーザー</a>
+                                <div class="dropdown-menu dropdown-menu-right" aria-labelledby="dropdown05">
+                                    <label class="dropdown-item">●ユーザー名<br>　確認　太郎</label>
+                                    <label class="dropdown-item">●所属組織<br>　A県B市農業組合</label>
+                                    <label class="dropdown-item">●権限情報<br>　審査者（一般）</label>
+                                    <a class="dropdown-item text-center">ログアウト</a>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </nav>
+
+                <!-- 農地データ -->
+                <!-- display:flex使って下まで埋めたいがdivが1個邪魔なので消す -->
+                <!-- <div> -->
+                <!-- rounded-pill → ボタン丸くする -->
+                <ul class="nav nav-pills panel_tabkey_area" id="myTab" role="tablist">
+                    <li class="nav-item">
+                        <button class="btn btn-light btn-select-black rounded-pill active" id="area-tab1" data-toggle="tab" href="#area1" role="tab" aria-controls="area1" aria-selected="true">
+                            水田台帳
+                        </button>
+                    </li>
+                </ul>
+
+                <div class="tab-content">
+                    <!-- ここから この辺りはarea2からコピペして持ってきてるんで差分がたくさん出ます 一度読み飛ばしたほうが読みやすい -->
+                    <div class="tab-pane active panel" id="area1" role="tabpanel" aria-labelledby="area-tab1">
+                        <!-- 検索　地番　地目　面積 -->
+                        <div class="panel_content">
+                            <div class="button_area">
+                                <label class="btn btn-dark text-white">配色設定</label>
+                                <label class="btn btn-dark text-white">ラベル設定</label>
+                                <label class="btn btn-dark text-white">ルート設定</label>
+                                <label class="btn btn-dark text-white">ダウンロード</label>
+                            </div>
+                            <div class="search_title">
+                                <!-- 検索イメージ追加 -->
+                                <img src="image/search.svg" alt="検索" class="_3757_c">検索
+                            </div>
+
+                            <!-- 検索条件表示（Map_control_0.jsに記述） -->
+                            <div class="search_area"></div>
+
+                            <div class="search_form_row search_button_area">
+                                <button type="button" class="btn btn-dark rounded-pill search_form_item search_button" disabled>検索</button>
+                            </div>
+
+                            <!-- 結果を出してみる -->
+                            <!-- display:flexとflex-grow:1使って結果エリアが画面下端まで埋まるようにしてます -->
+                            <!-- 詳しくはcssファイル参照 -->
+                            <div class="panel_table2">
+                                <div class="row search_form_row search_detail_area">
+                                    <div class="col-sm-6 search_detail_col">検索結果 27件</div>
+                                </div>
+                                <table id="suidenTable" class="data_list search_detail_area"></table>
+                                <div class="row" style="padding-left: 20px; padding-top: 5px;">
+                                    <div class="col-sm-5">
+                                        <select class="custom-select d-block w-100" id="select1" required disabled>
+                                            <option value="">－－－－－－－</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-sm-6 text-center">
+                                        <label class="btn btn-dark text-white" style="margin-left:-155px; cursor: default;">現地確認行程に追加</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- ここまで この辺りはarea2からコピペして持ってきてるんで差分がたくさん出ます 一度読み飛ばしたほうが読みやすい -->
+                    <div class="tab-pane panel" id="area2" role="tabpanel" aria-labelledby="area-tab2">
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+    <script>
+     const param = window.location.search;
+     let format = getParam('format');    // EXPECT: 'vector' or 'raster'
+     if (!format) format = 'picture';
+     let area = getParam('area');        // EXPECT: '13000'(=Tokyo)、'13228'(=Akiruno City)
+     if (!area) area='13000';
+
+    //  document.getElementById('gsi-' + format).checked = true;
+
+     mapboxgl.accessToken = 'pk.eyJ1IjoiY2hvbmFuLW5vem9tdSIsImEiOiJja2k1bHJjbDg0ZXZ2MnFrem81NWlmaG90In0.v__tuK8SHq9Q2IGKM9ZFwQ';
+     let map = new mapboxgl.Map({
+       container: "map",
+       hash: true,
+       style: {"version": 8,"name":"Raster","metadata":{},
+         "sources": {"gsi-pale": {"type": "raster","tiles": ["https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg"],"tileSize": 256,"attribution": "<a href='https://maps.gsi.go.jp/development/ichiran.html'>地理院タイル</a>"}},
+         "glyphs": "https://cyberjapandata.gsi.go.jp/xyz/noto-jp/{fontstack}/{range}.pbf",
+         "layers": [{"id": "gsi-pale","source": "gsi-pale", "type":"raster"}]
+       },
+       // 初期位置はここで設定する
+       zoom: 16.63,
+       center: [140.138016, 35.768269],
+       localFontFamily: "'NotoSansCJKjp-Regular', sans-serif"
+     });
+     map.addControl(new MapboxGeocoder({
+       accessToken: mapboxgl.accessToken,
+       marker: false,
+     }),'top-left');
+     map.addControl(new mapboxgl.NavigationControl(), 'top-left');
+     map.addControl(new mapboxgl.ScaleControl(), "bottom-left");
+
+     // GeoJSON読込
+     let geojson = null;
+
+     // TopoJSON＋d3.js版
+     // const topojsonUrl = "https://chonan-nozomu.github.io/MapboxPoC/topojson/" + area + ".topojson";
+     // const topojsonUrl = "./json/topojson/" + area + ".topojson";
+
+
+    //  map.on('load', renderFeature);
+     map.on('style.load', renderFeature);
+
+
+    //  d3.json(topojsonUrl).then(function(topo) {
+    //    // TopoJSONをGeoJSONに変換する
+    //    geojson = topojson.feature(topo, topo.objects['tokyo']);
+
+    //    map.on('load', renderFeature);
+    //    // setStyle呼出時にもtrigger
+    //    map.on('style.load', renderFeature);
+    //  });
+
+     map.setStyle({"version": 8,"name":"Raster","metadata":{},
+     "sources": {"gsi-pale": {"type": "raster","tiles": ["https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg"],"tileSize": 256,"attribution": "<a href='https://maps.gsi.go.jp/development/ichiran.html'>地理院タイル</a>"}},
+     "glyphs": "https://cyberjapandata.gsi.go.jp/xyz/noto-jp/{fontstack}/{range}.pbf",
+     "layers": [{"id": "gsi-pale","source": "gsi-pale", "type":"raster"}]});
+
+     // ポリゴンレンダリング
+     function renderFeature() {
+       const sourceId = 'feature-' + area;
+       const layerId = sourceId + '-line';
+
+       //    map.addSource(sourceId, {type: 'geojson', data: geojson});
+
+       // 連携前のため固定値で農地ピンデータを設定
+       map.addSource('suiden-circle', {
+       		'type': 'geojson',
+       		'data': {
+       			'type': 'FeatureCollection',
+       			'features': [
+       				{
+       					'type': 'Feature',
+       					'properties': {
+       						'circleID': 1
+       					},
+       					'geometry': {
+       						'type': 'Point',
+       						'coordinates': [140.138016, 35.768269]
+       					}
+       				},
+       				{
+       					'type': 'Feature',
+       					'properties': {
+       						'circleID': 2
+       					},
+       					'geometry': {
+       						'type': 'Point',
+       						'coordinates': [140.138546, 35.768569]
+       					}
+       				},
+       				{
+       					'type': 'Feature',
+       					'properties': {
+       						'circleID': 3
+       					},
+       					'geometry': {
+       						'type': 'Point',
+       						'coordinates': [140.137516, 35.768299]
+       					}
+       				},
+       				{
+       					'type': 'Feature',
+       					'properties': {
+       						'circleID': 4
+       					},
+       					'geometry': {
+       						'type': 'Point',
+       						'coordinates': [140.133714, 35.768000]
+       					}
+       				},
+       				{
+       					'type': 'Feature',
+       					'properties': {
+       						'circleID': 5
+       					},
+       					'geometry': {
+       						'type': 'Point',
+       						'coordinates': [140.137876, 35.769269]
+       					}
+       				},
+       				{
+       					'type': 'Feature',
+       					'properties': {
+       						'circleID': 6
+       					},
+       					'geometry': {
+       						'type': 'Point',
+       						'coordinates': [140.136576, 35.768299]
+       					}
+       				},
+       				{
+       					'type': 'Feature',
+       					'properties': {
+       						'circleID': 7
+       					},
+       					'geometry': {
+       						'type': 'Point',
+       						'coordinates': [140.136376, 35.769569]
+       					}
+       				},
+       				{
+       					'type': 'Feature',
+       					'properties': {
+       						'circleID': 8
+       					},
+       					'geometry': {
+       						'type': 'Point',
+       						'coordinates': [140.136076, 35.768569]
+       					}
+       				},
+       				{
+       					'type': 'Feature',
+       					'properties': {
+       						'circleID': 9
+       					},
+       					'geometry': {
+       						'type': 'Point',
+       						'coordinates': [140.136676, 35.767369]
+       					}
+       				},
+       				{
+       					'type': 'Feature',
+       					'properties': {
+       						'circleID': 10
+       					},
+       					'geometry': {
+       						'type': 'Point',
+       						'coordinates': [140.138016, 35.767969]
+       					}
+       				},
+
+       				{
+       					'type': 'Feature',
+       					'properties': {
+       						'circleID': 11
+       					},
+       					'geometry': {
+       						'type': 'Point',
+       						'coordinates': [140.137016, 35.768743]
+       					}
+       				},
+       				{
+       					'type': 'Feature',
+       					'properties': {
+       						'circleID': 12
+       					},
+       					'geometry': {
+       						'type': 'Point',
+       						'coordinates': [140.139016, 35.768743]
+       					}
+       				},
+       				{
+       					'type': 'Feature',
+       					'properties': {
+       						'circleID': 13
+       					},
+       					'geometry': {
+       						'type': 'Point',
+       						'coordinates': [140.139516, 35.768243]
+       					}
+       				},
+       				{
+       					'type': 'Feature',
+       					'properties': {
+       						'circleID': 14
+       					},
+       					'geometry': {
+       						'type': 'Point',
+       						'coordinates': [140.139216, 35.768243]
+       					}
+       				},
+       				{
+       					'type': 'Feature',
+       					'properties': {
+       						'circleID': 15
+       					},
+       					'geometry': {
+       						'type': 'Point',
+       						'coordinates': [140.139216, 35.767743]
+       					}
+       				},
+       				{
+       					'type': 'Feature',
+       					'properties': {
+       						'circleID': 16
+       					},
+       					'geometry': {
+       						'type': 'Point',
+       						'coordinates': [140.138916, 35.767143]
+       					}
+       				},
+       				{
+       					'type': 'Feature',
+       					'properties': {
+       						'circleID': 17
+       					},
+       					'geometry': {
+       						'type': 'Point',
+       						'coordinates': [140.136116, 35.767743]
+       					}
+       				},
+       				{
+       					'type': 'Feature',
+       					'properties': {
+       						'circleID': 18
+       					},
+       					'geometry': {
+       						'type': 'Point',
+       						'coordinates': [140.138016, 35.768743]
+       					}
+       				},
+       				{
+       					'type': 'Feature',
+       					'properties': {
+       						'circleID': 19
+       					},
+       					'geometry': {
+       						'type': 'Point',
+       						'coordinates': [140.138516, 35.769969]
+       					}
+       				},
+       				{
+       					'type': 'Feature',
+       					'properties': {
+       						'circleID': 20
+       					},
+       					'geometry': {
+       						'type': 'Point',
+       						'coordinates': [140.137716, 35.769969]
+       					}
+       				},
+       				{
+       					'type': 'Feature',
+       					'properties': {
+       						'circleID': 21
+       					},
+       					'geometry': {
+       						'type': 'Point',
+       						'coordinates': [140.135516, 35.768399]
+       					}
+       				},
+       				{
+       					'type': 'Feature',
+       					'properties': {
+       						'circleID': 22
+       					},
+       					'geometry': {
+       						'type': 'Point',
+       						'coordinates': [140.135716, 35.769099]
+       					}
+       				},
+       				{
+       					'type': 'Feature',
+       					'properties': {
+       						'circleID': 23
+       					},
+       					'geometry': {
+       						'type': 'Point',
+       						'coordinates': [140.134600, 35.770200]
+       					}
+       				},
+       				{
+       					'type': 'Feature',
+       					'properties': {
+       						'circleID': 24
+       					},
+       					'geometry': {
+       						'type': 'Point',
+       						'coordinates': [140.134600, 35.769500]
+       					}
+       				},
+       				{
+       					'type': 'Feature',
+       					'properties': {
+       						'circleID': 25
+       					},
+       					'geometry': {
+       						'type': 'Point',
+       						'coordinates': [140.132300, 35.769500]
+       					}
+       				},
+       				{
+       					'type': 'Feature',
+       					'properties': {
+       						'circleID': 26
+       					},
+       					'geometry': {
+       						'type': 'Point',
+       						'coordinates': [140.132300, 35.768700]
+       					}
+       				},
+       				{
+       					'type': 'Feature',
+       					'properties': {
+       						'circleID': 27
+       					},
+       					'geometry': {
+       						'type': 'Point',
+       						'coordinates': [140.132000, 35.767600]
+       					}
+       				},
+                ]
+       		}
+       });
+       // ここまで
+
+       // 多角形（塗りつぶし）
+       //map.addLayer({
+       //		id: layerId,
+       //		type: 'fill',
+       //		source: sourceId,
+       //		paint:{
+       //			'fill-color': 'rgba(255,102,26, 0.2)',
+       //			'fill-outline-color': 'rgba(255,102,26, 1)'
+       //		}
+       //});
+
+       var suidenlayer_frame = {
+            id: 'suiden-layer_frame',
+            type: 'circle',
+       		source: 'suiden-circle',
+       		'paint': {
+       			'circle-radius': {
+       				'base': 1.75,
+       				'stops': [
+       					[12, 5],
+       					[22, 140]]
+       			},
+                'circle-color': '#41b6c4'
+       		},
+       		'filter': ['==', '$type', 'Point']
+       };
+
+       // 丸（農地ピン）
+       map.addLayer(suidenlayer_frame);
+
+       // 塗りつぶし図形イベント
+       //map.on('click', layerId, changeCollar);
+       // Change the cursor to a pointer when the mouse is over the places layer.
+       //map.on('mouseenter', layerId, () =>{map.getCanvas().style.cursor = 'pointer';});
+       // Change it back to a pointer when it leaves.
+       //map.on('mouseleave', layerId, ()=>{map.getCanvas().style.cursor = '';});
+
+       map.on('click', 'suiden-layer_frame', changeCollarCircle);
+       map.on('mouseenter', 'suiden-layer_frame', () =>{map.getCanvas().style.cursor = 'pointer';});
+       map.on('mouseleave', 'suiden-layer_frame', ()=>{map.getCanvas().style.cursor = '';});
+
+     }
+
+     // ベクタ・ラスタ切替
+     const inputs = document.getElementById('menu1').getElementsByTagName('input');
+     for (var i = 0; i < inputs.length; i++) {
+       inputs[i].onclick = switchLayer;
+     }
+
+     function switchLayer(layer) {
+        if(layer.target.id == 'gsi-picture'){
+           map.setStyle({"version": 8,"name":"Raster","metadata":{},
+           				"sources": {"gsi-pale": {"type": "raster","tiles": ["https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg"],"tileSize": 256,"attribution": "<a href='https://maps.gsi.go.jp/development/ichiran.html'>地理院タイル</a>"}},
+           				"glyphs": "https://cyberjapandata.gsi.go.jp/xyz/noto-jp/{fontstack}/{range}.pbf",
+           				"layers": [{"id": "gsi-pale","source": "gsi-pale", "type":"raster"}]});
+        } else {
+ 	       map.setStyle("https://chonan-nozomu.github.io/MapboxPoC/style/" + layer.target.id + ".json");
+        }
+     }
+
+     // ポップアップ
+     function changeCollar(e) {
+        const sourceId = 'change_' + e.features[0].properties['筆ポリゴン'];
+ 		const layerId = sourceId + '_layer';
+
+ 		if(map.getSource(sourceId) != null) {
+ 			map.removeSource(sourceId);
+ 			if (map.getLayer(layerId)) map.removeLayer(layerId);
+ 		} else {
+
+ 			map.addSource(sourceId, {
+ 				type: 'geojson',
+ 				data: {
+ 					type: 'FeatureCollection',
+ 					features: e.features
+ 				}
+ 			});
+
+ 			map.addLayer({
+ 				id: layerId,
+ 				type: 'fill',
+ 		      	source: sourceId,
+ 				paint:{
+ 					'fill-color': 'rgba(255,255,26, 0.2)',
+ 					'fill-outline-color': 'rgba(255,255,26, 1)'
+ 				}
+ 			});
+ 		}
+     }
+
+     var changeData = { type: 'geojson', data: { type: 'FeatureCollection', features:[]}};
+     var checkList = [true, false, false, false, false, false, false, false, false, false, false, false, false, false,
+                      false, false, false, false, false, false, false, false, false, false, false, false, false, false ];
+
+     // ポップアップ
+     function changeCollarCircle(e) {
+
+ 		const layerId = 'change_layer';
+        checkList[Number(e.features[0].properties['circleID'])] = !checkList[Number(e.features[0].properties['circleID'])];
+
+ 		if(!checkList[Number(e.features[0].properties['circleID'])]) {
+            $("#list1tr" + e.features[0].properties['circleID']).css("background-color", "rgba(0,0,0,0)");
+
+            for(let i = 0; i < changeData.data.features.length; i ++) {
+                if(changeData.data.features[i].properties['circleID'] == e.features[0].properties['circleID']) {
+                    changeData.data.features.splice(i, 1);
+                    break;
+                }
+            }
+        } else {
+            $("#list1tr" + e.features[0].properties['circleID']).css("background-color", "rgba(247,202,121,1)");
+            changeData.data.features.push(e.features[0]);
+        }
+
+        if (map.getLayer(layerId + '_frame')) map.removeLayer(layerId + '_frame');
+        if (map.getLayer(layerId + '_middle')) map.removeLayer(layerId + '_middle');
+        if(map.getSource('change')) map.removeSource('change');
+
+        if(changeData.data.features.length != 0) {
+
+            map.addSource('change', changeData);
+
+            // 丸（農地ピン）
+            map.addLayer({
+                id: layerId + '_frame',
+                type: 'circle',
+                source: 'change',
+                paint:{
+                    'circle-radius': {
+                        'base': 1.75,
+                        'stops': [
+                            [12, 5],
+                            [22, 140]
+                        ]
+                    },
+                    'circle-color': '#ff8c00'
+                },
+                'filter': ['==', '$type', 'Point']
+            });
+        }
+    }
+
+     // ポップアップ
+     function setPopup(e) {
+       new mapboxgl.Popup()
+         .setLngLat(e.lngLat)
+         .setHTML("<p>耕地の種類：" + e.features[0].properties['耕地の種類'] + "</p>" +
+                  "<p>2019ID："+ e.features[0].properties['2019ID'] + "</p>" +
+                  "<textarea name='ID'></textarea><input type='button' value='更新'></input>")
+         .addTo(map);
+     }
+
+     /**
+      * Get the URL parameter value
+      *
+      */
+     function getParam(name, url) {
+         if (!url) url = window.location.href;
+         name = name.replace(/[\[\]]/g, "\\$&");
+         const regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)"),
+             results = regex.exec(url);
+         if (!results) return null;
+         if (!results[2]) return '';
+         return decodeURIComponent(results[2].replace(/\+/g, " "));
+     }
+
+     var suidenlayerSwitch = true;
+
+     $("#suiden_leyer").click(function() {
+        suidenlayerSwitch = !suidenlayerSwitch;
+
+        if(suidenlayerSwitch) {
+
+            var suidenlayer_frame = {
+                id: 'suiden-layer_frame',
+                type: 'circle',
+                source: 'suiden-circle',
+                'paint': {
+                    'circle-radius': {
+                        'base': 1.75,
+                        'stops': [
+                            [12, 5],
+                            [22, 140]]
+                    },
+                    'circle-color': '#41b6c4'
+                },
+                'filter': ['==', '$type', 'Point']
+            };
+
+            var changecircle_frame = {
+                id: 'change_layer_frame',
+                type: 'circle',
+                source: 'change',
+                paint:{
+                    'circle-radius': {
+                        'base': 1.75,
+                        'stops': [
+                            [12, 5],
+                            [22, 140]
+                        ]
+                    },
+                    'circle-color': '#ff8c00'
+                },
+                'filter': ['==', '$type', 'Point']
+            };
+
+            // 丸（農地ピン）
+            map.addLayer(suidenlayer_frame);
+
+            if (map.getSource('change')) {
+                // 丸（農地ピン）
+                map.addLayer(changecircle_frame);
+            }
+
+        } else {
+            // 丸（農地ピン）
+            map.removeLayer("suiden-layer_frame");
+
+            if (map.getSource('change')) {
+                // 丸（農地ピン）
+                map.removeLayer("change_layer_frame");
+            }
+        }
+    });
+
+    </script>
+</body>
+</html>
