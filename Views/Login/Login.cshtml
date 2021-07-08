@@ -1,0 +1,26 @@
+﻿@model Tm2TestAppService.Models.LoginModel
+
+@{
+    ViewBag.Title = "ログイン";
+}
+
+<h2>@ViewBag.Title</h2>
+@using (Html.BeginForm())
+{
+    <div>
+        @Html.LabelFor(model => model.Id)
+        @Html.EditorFor(model => model.Id)
+    </div>
+    <div>
+        @Html.LabelFor(model => model.Password)
+        @Html.PasswordFor(model => model.Password)
+    </div>
+    <div>
+        @Html.CheckBoxFor(model => model.RememberMe)
+        @Html.LabelFor(model => model.RememberMe)
+    </div>
+    <div>
+        <input type="submit" value="ログイン" />
+        @Html.ActionLink("MAPへ", "Map", "Map", new { area = "eMaffMapArea" }, new { @class = "" })
+    </div>
+}
